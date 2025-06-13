@@ -62,24 +62,29 @@ def main():
 
         input_key = f"hole_input_{hole}"
 
-        # Show previous value if exists; otherwise input starts empty
-        if st.session_state.actuals[hole] is not None:
-            actual = st.number_input(
-                "How far did you hit it?",
-                min_value=0,
-                max_value=200,
-                step=1,
-                value=st.session_state.actuals[hole],
-                key=input_key
-            )
+        # Use text_input instead of number_input for empty default
+        prev_val = (
+            str(st.session_state.actuals[hole])
+            if st.session_state.actuals[hole] is not None
+            else ""
+        )
+
+        user_input = st.text_input("How far did you hit it? (yards)", value=prev_val, key=input_key)
+
+        # Validate input: only whole numbers between 0 and 200
+        if user_input.strip() == "":
+            actual = None
         else:
-            actual = st.number_input(
-                "How far did you hit it?",
-                min_value=0,
-                max_value=200,
-                step=1,
-                key=input_key
-            )
+            try:
+                val = int(user_input)
+                if 0 <= val <= 200:
+                    actual = val
+                else:
+                    st.warning("Please enter a whole number between 0 and 200.")
+                    actual = None
+            except ValueError:
+                st.warning("Please enter a valid whole number.")
+                actual = None
 
         st.session_state.actuals[hole] = actual
 
@@ -102,7 +107,7 @@ def main():
     # Session complete — show summary and save
     else:
         scores = [
-            calculate_score(t, a) for t, a in zip(st.session_state.targets, st.session_state.actuals)
+            calculate_score(t, a if a is not None else 0) for t, a in zip(st.session_state.targets, st.session_state.actuals)
         ]
         total_score = sum(scores)
         date_str = datetime.now().strftime("%Y-%m-%d %H:%M")
@@ -120,15 +125,16 @@ def main():
         st.success(f"🏆 Session complete! Total Score: **{total_score} / 1800**")
         st.subheader("📋 Shot Summary")
         for i in range(NUM_HOLES):
+            actual_display = st.session_state.actuals[i] if st.session_state.actuals[i] is not None else "No Data"
             st.write(f"Hole {i+1}: Target {st.session_state.targets[i]} | "
-                     f"Hit {st.session_state.actuals[i]} | "
+                     f"Hit {actual_display} | "
                      f"Score: {scores[i]}")
 
         # Download this session as CSV
         session_df = pd.DataFrame({
             "Hole": list(range(1, NUM_HOLES + 1)),
             "Target Yardage": st.session_state.targets,
-            "Actual Yardage": st.session_state.actuals,
+            "Actual Yardage": [a if a is not None else "" for a in st.session_state.actuals],
             "Score": scores
         })
         session_df.loc[len(session_df.index)] = ["TOTAL", "", "", total_score]
@@ -159,7 +165,8 @@ def main():
         all_data = []
         for s in sessions:
             for t, a in zip(s["targets"], s["actuals"]):
-                all_data.append({"yardage": t, "error": abs(t - a)})
+                if a is not None:
+                    all_data.append({"yardage": t, "error": abs(t - a)})
 
         yardage_df = pd.DataFrame(all_data)
         yardage_stats = yardage_df.groupby("yardage").mean().reset_index()
