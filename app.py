@@ -60,19 +60,27 @@ def main():
         st.markdown(f"### Hole {hole + 1} of {NUM_HOLES}")
         st.markdown(f"🎯 **Target Distance:** `{target} yards`")
 
-        # Default value setup
-        current_value = st.session_state.actuals[hole]
-        if current_value is None:
-            current_value = 0
+        input_key = f"hole_input_{hole}"
 
-        actual = st.number_input(
-            "How far did you hit it?",
-            min_value=0,
-            max_value=200,
-            step=1,
-            value=current_value,
-            key=f"hole_input_{hole}"
-        )
+        # Show previous value if exists; otherwise input starts empty
+        if st.session_state.actuals[hole] is not None:
+            actual = st.number_input(
+                "How far did you hit it?",
+                min_value=0,
+                max_value=200,
+                step=1,
+                value=st.session_state.actuals[hole],
+                key=input_key
+            )
+        else:
+            actual = st.number_input(
+                "How far did you hit it?",
+                min_value=0,
+                max_value=200,
+                step=1,
+                key=input_key
+            )
+
         st.session_state.actuals[hole] = actual
 
         # Navigation buttons
@@ -80,16 +88,16 @@ def main():
         if hole > 0:
             if col1.button("⬅️ Back"):
                 st.session_state.current_hole -= 1
-                st.rerun()
+                st.experimental_rerun()
 
         if hole < NUM_HOLES - 1:
             if col2.button("➡️ Next"):
                 st.session_state.current_hole += 1
-                st.rerun()
+                st.experimental_rerun()
         else:
             if col2.button("✅ Finish"):
                 st.session_state.complete = True
-                st.rerun()
+                st.experimental_rerun()
 
     # Session complete — show summary and save
     else:
@@ -136,7 +144,7 @@ def main():
         if st.button("🆕 Start New Session"):
             for key in list(st.session_state.keys()):
                 del st.session_state[key]
-            st.rerun()
+            st.experimental_rerun()
 
     # Show session history and performance analysis
     st.markdown("---")
