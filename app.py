@@ -61,7 +61,6 @@ def main():
         # Default value for number_input: actual if exists, else 0
         default_val = st.session_state.actuals[hole] if st.session_state.actuals[hole] is not None else 0
 
-        # number_input automatically returns an int within range
         user_input = st.number_input(
             "How far did you hit it? (yards)",
             min_value=0,
@@ -73,26 +72,19 @@ def main():
 
         col1, col2 = st.columns(2)
 
-        # Save input before navigating
-        def save_current_input():
-            st.session_state.actuals[hole] = user_input
-
         if hole > 0:
             if col1.button("⬅️ Back"):
-                save_current_input()
+                st.session_state.actuals[hole] = user_input  # Save before navigating back
                 st.session_state.current_hole = hole - 1
-                st.experimental_rerun()
 
         if hole < NUM_HOLES - 1:
             if col2.button("➡️ Next"):
-                save_current_input()
+                st.session_state.actuals[hole] = user_input  # Save before navigating next
                 st.session_state.current_hole = hole + 1
-                st.experimental_rerun()
         else:
             if col2.button("✅ Finish"):
-                save_current_input()
+                st.session_state.actuals[hole] = user_input  # Save before finishing
                 st.session_state.complete = True
-                st.experimental_rerun()
 
     else:
         scores = [
@@ -138,7 +130,6 @@ def main():
         if st.button("🆕 Start New Session"):
             for key in list(st.session_state.keys()):
                 del st.session_state[key]
-            st.experimental_rerun()
 
     # Session history and analysis
     st.markdown("---")
