@@ -62,6 +62,7 @@ def main():
         st.session_state.actuals = [None] * NUM_HOLES
         st.session_state.current_hole = 0
         st.session_state.complete = False
+        st.session_state.current_input = ""
 
     hole = st.session_state.current_hole
     target = st.session_state.targets[hole]
@@ -70,11 +71,20 @@ def main():
         st.markdown(f"### Hole {hole + 1} of {NUM_HOLES}")
         st.markdown(f"🎯 **Target Distance:** `{target} yards`")
 
+        # Restore input text for this hole from actuals if available, else keep current_input
+        if st.session_state.actuals[hole] is not None:
+            st.session_state.current_input = str(st.session_state.actuals[hole])
+        else:
+            if st.session_state.current_input != "":
+                st.session_state.current_input = ""
+
         input_key = f"hole_input_{hole}"
-        prev_val = (
-            str(st.session_state.actuals[hole]) if st.session_state.actuals[hole] is not None else ""
+        user_input = st.text_input(
+            "How far did you hit it? (yards)",
+            value=st.session_state.current_input,
+            key=input_key,
+            on_change=lambda: st.session_state.update({ "current_input": st.session_state[input_key] })
         )
-        user_input = st.text_input("How far did you hit it? (yards)", value=prev_val, key=input_key)
 
         actual, warning_msg = valid_input(user_input)
         if warning_msg:
@@ -84,18 +94,27 @@ def main():
 
         if hole > 0:
             if col1.button("⬅️ Back"):
+                if actual is not None:
+                    st.session_state.actuals[hole] = actual
                 st.session_state.current_hole = max(0, hole - 1)
+                prev_actual = st.session_state.actuals[st.session_state.current_hole]
+                st.session_state.current_input = str(prev_actual) if prev_actual is not None else ""
 
         is_input_valid = (warning_msg is None)
 
         if hole < NUM_HOLES - 1:
             if col2.button("➡️ Next", disabled=not is_input_valid):
-                st.session_state.actuals[hole] = actual
+                if actual is not None:
+                    st.session_state.actuals[hole] = actual
                 st.session_state.current_hole = min(NUM_HOLES - 1, hole + 1)
+                prev_actual = st.session_state.actuals[st.session_state.current_hole]
+                st.session_state.current_input = str(prev_actual) if prev_actual is not None else ""
         else:
             if col2.button("✅ Finish", disabled=not is_input_valid):
-                st.session_state.actuals[hole] = actual
+                if actual is not None:
+                    st.session_state.actuals[hole] = actual
                 st.session_state.complete = True
+                st.experimental_rerun()
 
     else:
         scores = [
@@ -114,7 +133,7 @@ def main():
 
         save_session(session_data)
 
-        st.success(f"🏆 Session complete! Total Score: **{total_score} / 1800**")
+        st.success(f"🏆 Session complete! Total Score: **{total_score} / {NUM_HOLES * 100}**")
         st.subheader("📋 Shot Summary")
         for i in range(NUM_HOLES):
             actual_display = st.session_state.actuals[i] if st.session_state.actuals[i] is not None else "No Data"
@@ -122,7 +141,7 @@ def main():
                      f"Hit {actual_display} | "
                      f"Score: {scores[i]}")
 
-        # Download this session as CSV
+        # Download CSV
         session_df = pd.DataFrame({
             "Hole": list(range(1, NUM_HOLES + 1)),
             "Target Yardage": st.session_state.targets,
@@ -141,6 +160,7 @@ def main():
         if st.button("🆕 Start New Session"):
             for key in list(st.session_state.keys()):
                 del st.session_state[key]
+            st.experimental_rerun()
 
     # Session history and analysis
     st.markdown("---")
