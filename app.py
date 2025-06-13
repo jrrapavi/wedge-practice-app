@@ -6,6 +6,8 @@ from datetime import datetime
 import pandas as pd
 import time
 
+st.write("Streamlit version:", st.__version__)
+
 # Constants
 NUM_HOLES = 18
 YARDAGE_MIN = 40
