@@ -4,12 +4,18 @@ import json
 import os
 from datetime import datetime
 import pandas as pd
+import time
 
 # Constants
 NUM_HOLES = 18
 YARDAGE_MIN = 40
 YARDAGE_MAX = 140
 SESSION_FILE = "sessions.json"
+
+# Helper to safely rerun app with slight delay to avoid rapid reruns
+def safe_rerun():
+    time.sleep(0.1)
+    st.experimental_rerun()
 
 # Generate 18 random target yardages
 def generate_targets():
@@ -84,7 +90,7 @@ def main():
         if hole > 0:
             if col1.button("⬅️ Back"):
                 st.session_state.current_hole -= 1
-                st.experimental_rerun()
+                safe_rerun()
 
         # Disable next/finish buttons if input invalid
         is_input_valid = (warning_msg is None)
@@ -93,12 +99,12 @@ def main():
             if col2.button("➡️ Next", disabled=not is_input_valid):
                 st.session_state.actuals[hole] = actual
                 st.session_state.current_hole += 1
-                st.experimental_rerun()
+                safe_rerun()
         else:
             if col2.button("✅ Finish", disabled=not is_input_valid):
                 st.session_state.actuals[hole] = actual
                 st.session_state.complete = True
-                st.experimental_rerun()
+                safe_rerun()
 
     else:
         scores = [
@@ -144,7 +150,7 @@ def main():
         if st.button("🆕 Start New Session"):
             for key in list(st.session_state.keys()):
                 del st.session_state[key]
-            st.experimental_rerun()
+            safe_rerun()
 
     # Session history and analysis
     st.markdown("---")
