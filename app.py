@@ -40,18 +40,6 @@ def load_sessions():
             return json.load(f)
     return []
 
-def valid_input(val):
-    if val.strip() == "":
-        return None, "Please enter a number to continue."
-    try:
-        intval = int(val)
-        if 0 <= intval <= 200:
-            return intval, None
-        else:
-            return None, "Please enter a whole number between 0 and 200."
-    except ValueError:
-        return None, "Please enter a valid whole number."
-
 def main():
     st.set_page_config(page_title="Wedge Practice", layout="centered")
     st.title("🏌️ Wedge Practice App")
@@ -62,7 +50,6 @@ def main():
         st.session_state.actuals = [None] * NUM_HOLES
         st.session_state.current_hole = 0
         st.session_state.complete = False
-        st.session_state.inputs = {}  # hold text inputs by hole
 
     hole = st.session_state.current_hole
     target = st.session_state.targets[hole]
@@ -71,45 +58,39 @@ def main():
         st.markdown(f"### Hole {hole + 1} of {NUM_HOLES}")
         st.markdown(f"🎯 **Target Distance:** `{target} yards`")
 
-        # Load previous input for hole if exists
-        prev_input = st.session_state.inputs.get(hole, "")
+        # Default value for number_input: actual if exists, else 0
+        default_val = st.session_state.actuals[hole] if st.session_state.actuals[hole] is not None else 0
 
-        with st.form(key=f"input_form_{hole}", clear_on_submit=False):
-            user_input = st.text_input(
-                "How far did you hit it? (yards)",
-                value=prev_input,
-                key=f"hole_input_{hole}"
-            )
-            submitted = st.form_submit_button("Save Input")
+        # number_input automatically returns an int within range
+        user_input = st.number_input(
+            "How far did you hit it? (yards)",
+            min_value=0,
+            max_value=200,
+            value=default_val,
+            step=1,
+            key=f"hole_input_{hole}"
+        )
 
-            actual, warning_msg = valid_input(user_input)
-            if warning_msg:
-                st.warning(warning_msg)
-
-            if submitted:
-                if warning_msg is None:
-                    # Save valid input text and actual value
-                    st.session_state.inputs[hole] = user_input
-                    st.session_state.actuals[hole] = actual
-                    st.success("Input saved!")
-                else:
-                    st.warning("Fix input before saving.")
-
-        # Navigation buttons
         col1, col2 = st.columns(2)
 
-        # Disable navigation buttons until current hole input saved & valid
-        can_navigate = (hole in st.session_state.inputs) and (valid_input(st.session_state.inputs[hole])[1] is None)
+        # Save input before navigating
+        def save_current_input():
+            st.session_state.actuals[hole] = user_input
 
         if hole > 0:
             if col1.button("⬅️ Back"):
+                save_current_input()
                 st.session_state.current_hole = hole - 1
+                st.experimental_rerun()
 
         if hole < NUM_HOLES - 1:
-            if col2.button("➡️ Next", disabled=not can_navigate):
+            if col2.button("➡️ Next"):
+                save_current_input()
                 st.session_state.current_hole = hole + 1
+                st.experimental_rerun()
         else:
-            if col2.button("✅ Finish", disabled=not can_navigate):
+            if col2.button("✅ Finish"):
+                save_current_input()
                 st.session_state.complete = True
                 st.experimental_rerun()
 
