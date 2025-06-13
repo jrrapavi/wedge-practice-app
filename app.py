@@ -5,9 +5,6 @@ import os
 from datetime import datetime
 import pandas as pd
 
-# Set page config first thing — must be before any Streamlit commands!
-st.set_page_config(page_title="Wedge Practice", layout="centered")
-
 # Constants
 NUM_HOLES = 18
 YARDAGE_MIN = 40
@@ -43,7 +40,20 @@ def load_sessions():
             return json.load(f)
     return []
 
+def valid_input(val):
+    if val.strip() == "":
+        return None, "Please enter a number to continue."
+    try:
+        intval = int(val)
+        if 0 <= intval <= 200:
+            return intval, None
+        else:
+            return None, "Please enter a whole number between 0 and 200."
+    except ValueError:
+        return None, "Please enter a valid whole number."
+
 def main():
+    st.set_page_config(page_title="Wedge Practice", layout="centered")
     st.title("🏌️ Wedge Practice App")
 
     # Initialize session state once
@@ -66,41 +76,26 @@ def main():
         )
         user_input = st.text_input("How far did you hit it? (yards)", value=prev_val, key=input_key)
 
-        def valid_input(val):
-            if val.strip() == "":
-                return None, "Please enter a number to continue."
-            try:
-                intval = int(val)
-                if 0 <= intval <= 200:
-                    return intval, None
-                else:
-                    return None, "Please enter a whole number between 0 and 200."
-            except ValueError:
-                return None, "Please enter a valid whole number."
-
         actual, warning_msg = valid_input(user_input)
         if warning_msg:
             st.warning(warning_msg)
 
         col1, col2 = st.columns(2)
+
         if hole > 0:
             if col1.button("⬅️ Back"):
-                st.session_state.current_hole -= 1
-                st.experimental_rerun()
+                st.session_state.current_hole = max(0, hole - 1)
 
-        # Disable next/finish buttons if input invalid
         is_input_valid = (warning_msg is None)
 
         if hole < NUM_HOLES - 1:
             if col2.button("➡️ Next", disabled=not is_input_valid):
                 st.session_state.actuals[hole] = actual
-                st.session_state.current_hole += 1
-                st.experimental_rerun()
+                st.session_state.current_hole = min(NUM_HOLES - 1, hole + 1)
         else:
             if col2.button("✅ Finish", disabled=not is_input_valid):
                 st.session_state.actuals[hole] = actual
                 st.session_state.complete = True
-                st.experimental_rerun()
 
     else:
         scores = [
@@ -146,7 +141,6 @@ def main():
         if st.button("🆕 Start New Session"):
             for key in list(st.session_state.keys()):
                 del st.session_state[key]
-            st.experimental_rerun()
 
     # Session history and analysis
     st.markdown("---")
