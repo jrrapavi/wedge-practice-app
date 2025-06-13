@@ -11,16 +11,13 @@ YARDAGE_MIN = 40
 YARDAGE_MAX = 140
 SESSION_FILE = "sessions.json"
 
-# Generate 18 random target yardages
 def generate_targets():
     return [random.randint(YARDAGE_MIN, YARDAGE_MAX) for _ in range(NUM_HOLES)]
 
-# Scoring function: max 100, lose 2 points per yard off
 def calculate_score(target, actual):
     diff = abs(target - actual)
     return max(0, 100 - diff * 2)
 
-# Save session to JSON file
 def save_session(data):
     if os.path.exists(SESSION_FILE):
         with open(SESSION_FILE, "r") as f:
@@ -29,11 +26,9 @@ def save_session(data):
         sessions = []
 
     sessions.append(data)
-
     with open(SESSION_FILE, "w") as f:
         json.dump(sessions, f, indent=2)
 
-# Load past sessions
 def load_sessions():
     if os.path.exists(SESSION_FILE):
         with open(SESSION_FILE, "r") as f:
@@ -44,47 +39,35 @@ def main():
     st.set_page_config(page_title="Wedge Practice", layout="centered")
     st.title("🏌️ Wedge Practice App")
 
-    # Initialize session state once
     if "targets" not in st.session_state:
         st.session_state.targets = generate_targets()
         st.session_state.actuals = [None] * NUM_HOLES
-        st.session_state.current_hole = 0
         st.session_state.complete = False
 
-    hole = st.session_state.current_hole
-    target = st.session_state.targets[hole]
-
     if not st.session_state.complete:
-        st.markdown(f"### Hole {hole + 1} of {NUM_HOLES}")
-        st.markdown(f"🎯 **Target Distance:** `{target} yards`")
+        st.markdown("### Enter your hit distances for each hole below:")
 
-        # Default value for number_input: actual if exists, else 0
-        default_val = st.session_state.actuals[hole] if st.session_state.actuals[hole] is not None else 0
+        for hole in range(NUM_HOLES):
+            target = st.session_state.targets[hole]
+            default_val = st.session_state.actuals[hole] if st.session_state.actuals[hole] is not None else 0
 
-        user_input = st.number_input(
-            "How far did you hit it? (yards)",
-            min_value=0,
-            max_value=200,
-            value=default_val,
-            step=1,
-            key=f"hole_input_{hole}"
-        )
+            user_input = st.number_input(
+                f"Hole {hole+1} - Target: {target} yards. Your hit (yards):",
+                min_value=0,
+                max_value=200,
+                value=default_val,
+                step=1,
+                key=f"hole_input_{hole}"
+            )
 
-        col1, col2 = st.columns(2)
+            st.session_state.actuals[hole] = user_input
 
-        if hole > 0:
-            if col1.button("⬅️ Back"):
-                st.session_state.actuals[hole] = user_input  # Save before navigating back
-                st.session_state.current_hole = hole - 1
-
-        if hole < NUM_HOLES - 1:
-            if col2.button("➡️ Next"):
-                st.session_state.actuals[hole] = user_input  # Save before navigating next
-                st.session_state.current_hole = hole + 1
-        else:
-            if col2.button("✅ Finish"):
-                st.session_state.actuals[hole] = user_input  # Save before finishing
+        if st.button("✅ Finish Session"):
+            # Check all inputs valid
+            if all(isinstance(a, int) and 0 <= a <= 200 for a in st.session_state.actuals):
                 st.session_state.complete = True
+            else:
+                st.warning("Please enter valid distances (0-200) for all holes before finishing.")
 
     else:
         scores = [
@@ -111,7 +94,6 @@ def main():
                      f"Hit {actual_display} | "
                      f"Score: {scores[i]}")
 
-        # Download CSV
         session_df = pd.DataFrame({
             "Hole": list(range(1, NUM_HOLES + 1)),
             "Target Yardage": st.session_state.targets,
