@@ -72,21 +72,26 @@ def main():
         user_input = st.text_input("How far did you hit it? (yards)", value=prev_val, key=input_key)
 
         # Validate input: only whole numbers between 0 and 200
-        if user_input.strip() == "":
-            actual = None
-        else:
+        def valid_input(val):
+            if val.strip() == "":
+                return None, "Please enter a number to continue."
             try:
-                val = int(user_input)
-                if 0 <= val <= 200:
-                    actual = val
+                intval = int(val)
+                if 0 <= intval <= 200:
+                    return intval, None
                 else:
-                    st.warning("Please enter a whole number between 0 and 200.")
-                    actual = None
+                    return None, "Please enter a whole number between 0 and 200."
             except ValueError:
-                st.warning("Please enter a valid whole number.")
-                actual = None
+                return None, "Please enter a valid whole number."
 
-        st.session_state.actuals[hole] = actual
+        actual, warning_msg = valid_input(user_input)
+
+        if warning_msg:
+            st.warning(warning_msg)
+
+        # Update session_state only if input is valid (no warning)
+        if warning_msg is None:
+            st.session_state.actuals[hole] = actual
 
         # Navigation buttons
         col1, col2 = st.columns(2)
@@ -95,12 +100,15 @@ def main():
                 st.session_state.current_hole -= 1
                 st.experimental_rerun()
 
+        # Disable Next / Finish if input invalid or empty
+        is_input_valid = (warning_msg is None)
+
         if hole < NUM_HOLES - 1:
-            if col2.button("➡️ Next"):
+            if col2.button("➡️ Next", disabled=not is_input_valid):
                 st.session_state.current_hole += 1
                 st.experimental_rerun()
         else:
-            if col2.button("✅ Finish"):
+            if col2.button("✅ Finish", disabled=not is_input_valid):
                 st.session_state.complete = True
                 st.experimental_rerun()
 
