@@ -93,38 +93,60 @@ def main():
                 st.warning("Please enter valid distances (0-200) for all holes before finishing.")
 
     else:
-        scores = [
-            calculate_score(t, a if a is not None else 0)
-            for t, a in zip(st.session_state.targets, st.session_state.actuals)
-        ]
-        total_score = round(sum(scores), 2)
+        scores = []
+        filtered_targets = []
+        filtered_actuals = []
+
+        for t, a in zip(st.session_state.targets, st.session_state.actuals):
+            if a != 0:
+                score = calculate_score(t, a)
+                scores.append(score)
+                filtered_targets.append(t)
+                filtered_actuals.append(a)
+            else:
+                scores.append(None)  # Placeholder for display
+                filtered_targets.append(t)
+                filtered_actuals.append(None)
+
+        total_score = round(sum(s for s in scores if s is not None), 2)
         date_str = datetime.now().strftime("%Y-%m-%d %H:%M")
 
         session_data = {
             "date": date_str,
-            "targets": st.session_state.targets,
-            "actuals": st.session_state.actuals,
-            "scores": scores,
+            "targets": filtered_targets,
+            "actuals": filtered_actuals,
+            "scores": [s for s in scores if s is not None],
             "total_score": total_score
         }
 
         save_session(session_data)
 
+
         st.success(f"🏆 Session complete! Total Score: **{total_score}**")
         st.subheader("📋 Shot Summary")
+
         for i in range(NUM_HOLES):
-            actual_display = st.session_state.actuals[i] if st.session_state.actuals[i] is not None else "No Data"
-            st.write(f"Hole {i+1}: Target {st.session_state.targets[i]} | "
-                     f"Hit {actual_display} | "
-                     f"Score: {scores[i]}")
+            target = st.session_state.targets[i]
+            actual = st.session_state.actuals[i]
+            score = scores[i]
+
+            if actual == 0:
+                st.write(f"Hole {i+1}: Target {target} | Hit: ❌ Skipped | Score: N/A")
+            else:
+                st.write(f"Hole {i+1}: Target {target} | Hit: {actual} | Score: {score}")
+
 
         session_df = pd.DataFrame({
             "Hole": list(range(1, NUM_HOLES + 1)),
             "Target Yardage": st.session_state.targets,
-            "Actual Yardage": [a if a is not None else "" for a in st.session_state.actuals],
-            "Score": scores
+            "Actual Yardage": [
+                a if a != 0 else "" for a in st.session_state.actuals
+            ],
+            "Score": [s if s is not None else "" for s in scores]
         })
+
         session_df.loc[len(session_df.index)] = ["TOTAL", "", "", total_score]
+
         csv_data = session_df.to_csv(index=False).encode("utf-8")
         st.download_button(
             label="⬇️ Download This Session as CSV",
@@ -132,6 +154,7 @@ def main():
             file_name=f"wedge_session_{date_str.replace(' ', '_').replace(':', '-')}.csv",
             mime="text/csv"
         )
+
 
         if st.button("🆕 Start New Session"):
             for key in list(st.session_state.keys()):
@@ -150,12 +173,16 @@ def main():
         all_data = []
         for s in sessions:
             for t, a in zip(s["targets"], s["actuals"]):
-                if a is not None:
+                if a is not None and a != 0:
                     all_data.append({"yardage": t, "error": abs(t - a)})
 
-        yardage_df = pd.DataFrame(all_data)
-        yardage_stats = yardage_df.groupby("yardage").mean().reset_index()
-        st.line_chart(yardage_stats.set_index("yardage"))
+        if all_data:
+            yardage_df = pd.DataFrame(all_data)
+            yardage_stats = yardage_df.groupby("yardage").mean().reset_index()
+            st.line_chart(yardage_stats.set_index("yardage"))
+        else:
+            st.info("No valid data points available for error analysis.")
+
 
 if __name__ == "__main__":
     main()
