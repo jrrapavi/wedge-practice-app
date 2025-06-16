@@ -37,7 +37,7 @@ def load_sessions():
 
 def main():
     st.set_page_config(page_title="Wedge Practice", layout="centered")
-    st.title("🏌️ Wedge Practice App")
+    st.title("🏌️ Wedge Practice")
 
     if "targets" not in st.session_state:
         st.session_state.targets = generate_targets()
@@ -45,14 +45,14 @@ def main():
         st.session_state.complete = False
 
     if not st.session_state.complete:
-        st.markdown("### Enter your hit distances for each hole below:")
+        st.markdown("### Enter your shot yardages for each hole below:")
 
         for hole in range(NUM_HOLES):
             target = st.session_state.targets[hole]
             default_val = st.session_state.actuals[hole] if st.session_state.actuals[hole] is not None else 0
 
             user_input = st.number_input(
-                f"Hole {hole+1} - Target: {target} yards. Your hit (yards):",
+                f"Hole {hole+1} - Target: {target} yards. Your shot (yards):",
                 min_value=0,
                 max_value=200,
                 value=default_val,
