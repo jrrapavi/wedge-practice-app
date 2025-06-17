@@ -58,6 +58,10 @@ def load_sessions():
             return json.load(f)
     return []
 
+# Callback function to clear input
+def clear_input(hole):
+    st.session_state[f"hole_input_{hole}"] = st.session_state.targets[hole]
+
 # Streamlit app
 def main():
     st.set_page_config(page_title="Wedge Practice", layout="centered")
@@ -89,8 +93,7 @@ def main():
                     key=f"hole_input_{hole}"
                 )
             with col2:
-                if st.button("Clear", key=f"clear_button_{hole}"):
-                    user_input = 0
+                st.button("Clear", key=f"clear_button_{hole}", on_click=clear_input, args=(hole,))
 
             st.session_state.actuals[hole] = user_input
 
