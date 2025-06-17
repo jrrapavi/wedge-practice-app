@@ -80,7 +80,7 @@ def main():
 
             col1, col2 = st.columns([3, 1])
             with col1:
-                user_input = st.number_input(
+                user_input = st.slider(
                     "",  # Placeholder text to avoid repeating the message
                     min_value=0,
                     max_value=200,
