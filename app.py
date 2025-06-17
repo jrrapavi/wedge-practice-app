@@ -53,25 +53,22 @@ def main():
     st.set_page_config(page_title="Wedge Practice", layout="centered")
     st.title("🏌️ Wedge Practice")
 
-    # 🛡️ Safe session state setup
-    if "num_holes" not in st.session_state:
+    # --- Initial setup: select holes ---
+    if "num_holes" not in st.session_state or "targets" not in st.session_state:
         st.markdown("### ⛳ Select Number of Holes")
-        st.session_state.num_holes = st.radio("How many holes would you like to play?", [9, 18])
+        num_holes = st.radio("How many holes would you like to play?", [9, 18], key="num_holes_choice")
         if st.button("Start Session"):
-            num_holes = st.session_state.num_holes
+            st.session_state.num_holes = num_holes
             st.session_state.targets = generate_targets(num_holes)
             for i in range(num_holes):
                 st.session_state[f"hole_input_{i}"] = st.session_state.targets[i]
             st.session_state.complete = False
             st.experimental_rerun()
-        return
+        return  # Wait until session is initialized
 
-    # Safe default
+    # --- Ensure complete flag exists ---
     if "complete" not in st.session_state:
         st.session_state.complete = False
-
-    if "targets" not in st.session_state:
-        return  # Don't proceed until session is fully initialized
 
     num_holes = st.session_state.num_holes
 
@@ -106,6 +103,7 @@ def main():
                 st.warning("⚠️ Please enter values between 0 and 200 for all holes.")
 
     else:
+        # --- Show Results ---
         targets = st.session_state.targets
         actuals = [st.session_state[f"hole_input_{i}"] for i in range(num_holes)]
         scores = []
@@ -159,14 +157,12 @@ def main():
             mime="text/csv"
         )
 
-        st.markdown("<br>", unsafe_allow_html=True)
-
         if st.button("🔁 Start New Session", use_container_width=True):
             for key in list(st.session_state.keys()):
                 del st.session_state[key]
             st.experimental_rerun()
 
-    # Session history
+    # --- Session history ---
     with st.expander("📊 View Past Sessions & Performance"):
         sessions = load_sessions()
         if sessions:
