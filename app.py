@@ -63,7 +63,7 @@ def main():
             for i in range(num_holes):
                 st.session_state[f"hole_input_{i}"] = st.session_state.targets[i]
             st.session_state.complete = False
-            st.experimental_rerun()
+            st.rerun()
         return  # Wait until session is initialized
 
     # --- Ensure complete flag exists ---
@@ -98,7 +98,7 @@ def main():
             )
             if all_valid:
                 st.session_state.complete = True
-                st.experimental_rerun()
+                st.rerun()
             else:
                 st.warning("⚠️ Please enter values between 0 and 200 for all holes.")
 
@@ -160,7 +160,7 @@ def main():
         if st.button("🔁 Start New Session", use_container_width=True):
             for key in list(st.session_state.keys()):
                 del st.session_state[key]
-            st.experimental_rerun()
+            st.rerun()
 
     # --- Session history ---
     with st.expander("📊 View Past Sessions & Performance"):
