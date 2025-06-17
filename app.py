@@ -53,17 +53,22 @@ def main():
     st.set_page_config(page_title="Wedge Practice", layout="centered")
     st.title("🏌️ Wedge Practice")
 
-    # Select number of holes
+    # 🛡️ Safe session state setup
     if "num_holes" not in st.session_state:
         st.markdown("### ⛳ Select Number of Holes")
         st.session_state.num_holes = st.radio("How many holes would you like to play?", [9, 18])
         if st.button("Start Session"):
-            st.session_state.targets = generate_targets(st.session_state.num_holes)
-            for i in range(st.session_state.num_holes):
+            num_holes = st.session_state.num_holes
+            st.session_state.targets = generate_targets(num_holes)
+            for i in range(num_holes):
                 st.session_state[f"hole_input_{i}"] = st.session_state.targets[i]
             st.session_state.complete = False
             st.experimental_rerun()
         return
+
+    # Safe default
+    if "complete" not in st.session_state:
+        st.session_state.complete = False
 
     num_holes = st.session_state.num_holes
 
@@ -93,6 +98,7 @@ def main():
             )
             if all_valid:
                 st.session_state.complete = True
+                st.experimental_rerun()
             else:
                 st.warning("⚠️ Please enter values between 0 and 200 for all holes.")
 
@@ -157,6 +163,7 @@ def main():
                 del st.session_state[key]
             st.experimental_rerun()
 
+    # Session history
     with st.expander("📊 View Past Sessions & Performance"):
         sessions = load_sessions()
         if sessions:
