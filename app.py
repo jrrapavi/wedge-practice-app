@@ -7,12 +7,10 @@ import pandas as pd
 import numpy as np
 
 # Constants
-NUM_HOLES = 18
 YARDAGE_MIN = 40
 YARDAGE_MAX = 140
 SESSION_FILE = "sessions.json"
 
-# Shot value data
 starting_yardages = list(range(40, 155, 5))
 starting_values = [2.6, 2.62, 2.65, 2.67, 2.69, 2.7, 2.72, 2.73, 2.73, 2.75, 2.76,
                    2.77, 2.78, 2.79, 2.81, 2.82, 2.83, 2.85, 2.86, 2.87, 2.89, 2.91, 2.93]
@@ -21,23 +19,20 @@ ending_yardages = list(range(0, 16))
 ending_values = [1, 1.04, 1.34, 1.56, 1.7, 1.78, 1.84, 1.89, 1.92, 1.95, 1.98, 2.0,
                  2.02, 2.05, 2.08, 2.1]
 
-# Interpolation
 def get_starting_shot_value(yardage):
     return float(np.interp(yardage, starting_yardages, starting_values))
 
 def get_ending_shot_value(yardage):
     return float(np.interp(yardage, ending_yardages, ending_values))
 
-# Scoring
 def calculate_score(start_yardage, actual_yardage):
     end_diff = abs(start_yardage - actual_yardage)
     start_val = get_starting_shot_value(start_yardage)
     end_val = get_ending_shot_value(end_diff)
     return round(start_val - end_val - 1, 2)
 
-# Session handling
-def generate_targets():
-    return [random.randint(YARDAGE_MIN, YARDAGE_MAX) for _ in range(NUM_HOLES)]
+def generate_targets(num_holes):
+    return [random.randint(YARDAGE_MIN, YARDAGE_MAX) for _ in range(num_holes)]
 
 def save_session(data):
     sessions = []
@@ -54,35 +49,34 @@ def load_sessions():
             return json.load(f)
     return []
 
-# Main App
 def main():
     st.set_page_config(page_title="Wedge Practice", layout="centered")
     st.title("🏌️ Wedge Practice")
 
-    # Init session
-    if "targets" not in st.session_state:
-        st.session_state.targets = generate_targets()
-        for i in range(NUM_HOLES):
-            st.session_state[f"hole_input_{i}"] = st.session_state.targets[i]
-        st.session_state.complete = False
+    # Select number of holes
+    if "num_holes" not in st.session_state:
+        st.markdown("### ⛳ Select Number of Holes")
+        st.session_state.num_holes = st.radio("How many holes would you like to play?", [9, 18])
+        if st.button("Start Session"):
+            st.session_state.targets = generate_targets(st.session_state.num_holes)
+            for i in range(st.session_state.num_holes):
+                st.session_state[f"hole_input_{i}"] = st.session_state.targets[i]
+            st.session_state.complete = False
+            st.experimental_rerun()
+        return
+
+    num_holes = st.session_state.num_holes
 
     if not st.session_state.complete:
-        st.markdown("### 🎯 Enter your distances")
+        st.markdown("### 🎯 Enter your distances:")
 
-        for hole in range(NUM_HOLES):
+        for hole in range(num_holes):
             target = st.session_state.targets[hole]
             key = f"hole_input_{hole}"
-            clear_flag = f"clear_requested_{hole}"
-
-            # Apply clear if requested
-            if st.session_state.get(clear_flag, False):
-                st.session_state[key] = 0
-                del st.session_state[clear_flag]
 
             st.markdown(f"<p style='font-size:18px;'>Hole {hole+1}: <b>{target} yards</b></p>", unsafe_allow_html=True)
 
-            # Vertical layout for mobile
-            user_input = st.number_input(
+            st.number_input(
                 label="Your Shot:",
                 min_value=0,
                 max_value=200,
@@ -90,16 +84,12 @@ def main():
                 value=st.session_state[key],
                 key=key
             )
-            if st.button("Clear", key=f"clear_button_{hole}"):
-                st.session_state[clear_flag] = True
-                st.experimental_rerun()
-
             st.markdown("<hr>", unsafe_allow_html=True)
 
         if st.button("✅ Finish Session", use_container_width=True):
             all_valid = all(
                 isinstance(st.session_state[f"hole_input_{i}"], int) and 0 <= st.session_state[f"hole_input_{i}"] <= 200
-                for i in range(NUM_HOLES)
+                for i in range(num_holes)
             )
             if all_valid:
                 st.session_state.complete = True
@@ -108,7 +98,7 @@ def main():
 
     else:
         targets = st.session_state.targets
-        actuals = [st.session_state[f"hole_input_{i}"] for i in range(NUM_HOLES)]
+        actuals = [st.session_state[f"hole_input_{i}"] for i in range(num_holes)]
         scores = []
         filtered_targets, filtered_actuals = [], []
 
@@ -136,7 +126,7 @@ def main():
         st.success(f"🏁 Session Complete! Total Score: **{total_score}**")
         st.markdown("### 📝 Shot Summary")
 
-        for i in range(NUM_HOLES):
+        for i in range(num_holes):
             t = targets[i]
             a = actuals[i]
             s = scores[i]
@@ -146,7 +136,7 @@ def main():
                 st.write(f"Hole {i+1}: Target {t} | You hit: {a} | Score: {s}")
 
         df = pd.DataFrame({
-            "Hole": list(range(1, NUM_HOLES + 1)),
+            "Hole": list(range(1, num_holes + 1)),
             "Target Yardage": targets,
             "Actual Yardage": [a if a != 0 else "" for a in actuals],
             "Score": [s if s is not None else "" for s in scores]
@@ -167,7 +157,6 @@ def main():
                 del st.session_state[key]
             st.experimental_rerun()
 
-    # Optional: Session history and stats
     with st.expander("📊 View Past Sessions & Performance"):
         sessions = load_sessions()
         if sessions:
