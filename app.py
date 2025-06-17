@@ -13,41 +13,37 @@ YARDAGE_MAX = 140
 SESSION_FILE = "sessions.json"
 
 # Shot value data for interpolation
-starting_yardages = [40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100,
-                     105, 110, 115, 120, 125, 130, 135, 140, 145, 150]
+starting_yardages = list(range(40, 155, 5))
 starting_values = [2.6, 2.62, 2.65, 2.67, 2.69, 2.7, 2.72, 2.73, 2.73, 2.75, 2.76,
                    2.77, 2.78, 2.79, 2.81, 2.82, 2.83, 2.85, 2.86, 2.87, 2.89, 2.91, 2.93]
 
-ending_yardages = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+ending_yardages = list(range(0, 16))
 ending_values = [1, 1.04, 1.34, 1.56, 1.7, 1.78, 1.84, 1.89, 1.92, 1.95, 1.98, 2.0,
                  2.02, 2.05, 2.08, 2.1]
 
-# Interpolation functions
+# Interpolation
 def get_starting_shot_value(yardage):
     return float(np.interp(yardage, starting_yardages, starting_values))
 
 def get_ending_shot_value(yardage):
     return float(np.interp(yardage, ending_yardages, ending_values))
 
-# Scoring system
+# Scoring
 def calculate_score(start_yardage, actual_yardage):
     end_diff = abs(start_yardage - actual_yardage)
     start_val = get_starting_shot_value(start_yardage)
     end_val = get_ending_shot_value(end_diff)
-    score = start_val - end_val - 1
-    return round(score, 2)  # Allow negative scores
+    return round(start_val - end_val - 1, 2)
 
-# Session handling
+# Session utilities
 def generate_targets():
     return [random.randint(YARDAGE_MIN, YARDAGE_MAX) for _ in range(NUM_HOLES)]
 
 def save_session(data):
+    sessions = []
     if os.path.exists(SESSION_FILE):
         with open(SESSION_FILE, "r") as f:
             sessions = json.load(f)
-    else:
-        sessions = []
-
     sessions.append(data)
     with open(SESSION_FILE, "w") as f:
         json.dump(sessions, f, indent=2)
@@ -58,14 +54,16 @@ def load_sessions():
             return json.load(f)
     return []
 
-# Streamlit app
+# Main app
 def main():
     st.set_page_config(page_title="Wedge Practice", layout="centered")
     st.title("🏌️ Wedge Practice")
 
+    # Initialize session state
     if "targets" not in st.session_state:
         st.session_state.targets = generate_targets()
-        st.session_state.actuals = [None] * NUM_HOLES
+        for i in range(NUM_HOLES):
+            st.session_state[f"hole_input_{i}"] = st.session_state.targets[i]
         st.session_state.complete = False
 
     if not st.session_state.complete:
@@ -73,90 +71,87 @@ def main():
 
         for hole in range(NUM_HOLES):
             target = st.session_state.targets[hole]
-            default_val = target if st.session_state.actuals[hole] is None else st.session_state.actuals[hole]
+            key = f"hole_input_{hole}"
 
-            # Increase font size and bold target yardage
-            st.markdown(f"<p style='font-size:20px;'>Hole {hole+1} - Target: <b>{target}</b> yards. Your shot (yards):</p>", unsafe_allow_html=True)
+            st.markdown(
+                f"<p style='font-size:20px;'>Hole {hole+1} - Target: <b>{target}</b> yards. Your shot (yards):</p>",
+                unsafe_allow_html=True
+            )
 
             col1, col2 = st.columns([3, 1])
             with col1:
-                user_input = st.slider(
-                    "",  # Placeholder text to avoid repeating the message
+                st.number_input(
+                    label="",
                     min_value=0,
                     max_value=200,
-                    value=default_val,
+                    value=st.session_state[key],
                     step=1,
-                    key=f"hole_input_{hole}"
+                    key=key
                 )
             with col2:
                 if st.button("Clear", key=f"clear_button_{hole}"):
-                    st.session_state[f"hole_input_{hole}"] = 0
-
-            st.session_state.actuals[hole] = user_input
+                    st.session_state[key] = 0
 
         if st.button("✅ Finish Session"):
-            if all(isinstance(a, int) and 0 <= a <= 200 for a in st.session_state.actuals):
+            all_valid = all(
+                isinstance(st.session_state[f"hole_input_{i}"], int) and 0 <= st.session_state[f"hole_input_{i}"] <= 200
+                for i in range(NUM_HOLES)
+            )
+            if all_valid:
                 st.session_state.complete = True
             else:
                 st.warning("Please enter valid distances (0-200) for all holes before finishing.")
 
     else:
+        targets = st.session_state.targets
+        actuals = [st.session_state[f"hole_input_{i}"] for i in range(NUM_HOLES)]
         scores = []
-        filtered_targets = []
-        filtered_actuals = []
+        filtered_targets, filtered_actuals = [], []
 
-        for t, a in zip(st.session_state.targets, st.session_state.actuals):
+        for t, a in zip(targets, actuals):
             if a != 0:
-                score = calculate_score(t, a)
-                scores.append(score)
+                scores.append(calculate_score(t, a))
                 filtered_targets.append(t)
                 filtered_actuals.append(a)
             else:
-                scores.append(None)  # Placeholder for display
+                scores.append(None)
                 filtered_targets.append(t)
                 filtered_actuals.append(None)
 
         total_score = round(sum(s for s in scores if s is not None), 2)
         date_str = datetime.now().strftime("%Y-%m-%d %H:%M")
 
-        session_data = {
+        save_session({
             "date": date_str,
             "targets": filtered_targets,
             "actuals": filtered_actuals,
             "scores": [s for s in scores if s is not None],
             "total_score": total_score
-        }
-
-        save_session(session_data)
+        })
 
         st.success(f"🏆 Session complete! Total Score: **{total_score}**")
         st.subheader("📋 Shot Summary")
 
         for i in range(NUM_HOLES):
-            target = st.session_state.targets[i]
-            actual = st.session_state.actuals[i]
-            score = scores[i]
-
-            if actual == 0:
-                st.write(f"Hole {i+1}: Target {target} | Hit: ❌ Skipped | Score: N/A")
+            t = targets[i]
+            a = actuals[i]
+            s = scores[i]
+            if a == 0:
+                st.write(f"Hole {i+1}: Target {t} | Hit: ❌ Skipped | Score: N/A")
             else:
-                st.write(f"Hole {i+1}: Target {target} | Hit: {actual} | Score: {score}")
+                st.write(f"Hole {i+1}: Target {t} | Hit: {a} | Score: {s}")
 
-        session_df = pd.DataFrame({
+        df = pd.DataFrame({
             "Hole": list(range(1, NUM_HOLES + 1)),
-            "Target Yardage": st.session_state.targets,
-            "Actual Yardage": [
-                a if a != 0 else "" for a in st.session_state.actuals
-            ],
+            "Target Yardage": targets,
+            "Actual Yardage": [a if a != 0 else "" for a in actuals],
             "Score": [s if s is not None else "" for s in scores]
         })
+        df.loc[len(df)] = ["TOTAL", "", "", total_score]
 
-        session_df.loc[len(session_df.index)] = ["TOTAL", "", "", total_score]
-
-        csv_data = session_df.to_csv(index=False).encode("utf-8")
         st.download_button(
             label="⬇️ Download This Session as CSV",
-            data=csv_data,
+            data=df.to_csv(index=False).encode("utf-8"),
             file_name=f"wedge_session_{date_str.replace(' ', '_').replace(':', '-')}.csv",
             mime="text/csv"
         )
@@ -165,20 +160,19 @@ def main():
             for key in list(st.session_state.keys()):
                 del st.session_state[key]
 
-    # Session history and analysis
     st.markdown("---")
     st.subheader("📊 Session History")
-    sessions = load_sessions()
 
+    sessions = load_sessions()
     if sessions:
-        df = pd.DataFrame(sessions)
-        st.dataframe(df[["date", "total_score"]].sort_values("total_score", ascending=False), use_container_width=True)
+        history_df = pd.DataFrame(sessions)
+        st.dataframe(history_df[["date", "total_score"]].sort_values("total_score", ascending=False), use_container_width=True)
 
         st.subheader("📈 Yardage Error Analysis")
         all_data = []
-        for s in sessions:
-            for t, a in zip(s["targets"], s["actuals"]):
-                if a is not None and a != 0:
+        for session in sessions:
+            for t, a in zip(session["targets"], session["actuals"]):
+                if a is not None:
                     all_data.append({"yardage": t, "error": abs(t - a)})
 
         if all_data:
