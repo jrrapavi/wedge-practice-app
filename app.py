@@ -67,7 +67,7 @@ def main():
         st.session_state.complete = False
 
     if not st.session_state.complete:
-        st.markdown("### 🎯 Enter your distances (tap + / - for precision)")
+        st.markdown("### 🎯 Enter your distances")
 
         for hole in range(NUM_HOLES):
             target = st.session_state.targets[hole]
