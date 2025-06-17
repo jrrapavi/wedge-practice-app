@@ -29,7 +29,7 @@ def get_starting_shot_value(yardage):
 def get_ending_shot_value(yardage):
     return float(np.interp(yardage, ending_yardages, ending_values))
 
-# New scoring system
+# Scoring system
 def calculate_score(start_yardage, actual_yardage):
     end_diff = abs(start_yardage - actual_yardage)
     start_val = get_starting_shot_value(start_yardage)
@@ -74,6 +74,9 @@ def main():
         for hole in range(NUM_HOLES):
             target = st.session_state.targets[hole]
             default_val = st.session_state.actuals[hole] if st.session_state.actuals[hole] is not None else 0
+
+            # Increase font size and bold target yardage
+            st.markdown(f"<p style='font-size:20px;'>Hole {hole+1} - Target: <b>{target}</b> yards. Your shot (yards):</p>", unsafe_allow_html=True)
 
             user_input = st.number_input(
                 f"Hole {hole+1} - Target: {target} yards. Your shot (yards):",
@@ -121,7 +124,6 @@ def main():
 
         save_session(session_data)
 
-
         st.success(f"🏆 Session complete! Total Score: **{total_score}**")
         st.subheader("📋 Shot Summary")
 
@@ -134,7 +136,6 @@ def main():
                 st.write(f"Hole {i+1}: Target {target} | Hit: ❌ Skipped | Score: N/A")
             else:
                 st.write(f"Hole {i+1}: Target {target} | Hit: {actual} | Score: {score}")
-
 
         session_df = pd.DataFrame({
             "Hole": list(range(1, NUM_HOLES + 1)),
@@ -154,7 +155,6 @@ def main():
             file_name=f"wedge_session_{date_str.replace(' ', '_').replace(':', '-')}.csv",
             mime="text/csv"
         )
-
 
         if st.button("🆕 Start New Session"):
             for key in list(st.session_state.keys()):
@@ -182,7 +182,6 @@ def main():
             st.line_chart(yardage_stats.set_index("yardage"))
         else:
             st.info("No valid data points available for error analysis.")
-
 
 if __name__ == "__main__":
     main()
