@@ -95,7 +95,7 @@ def main():
             with col2:
                 st.button("Clear", key=f"clear_button_{hole}", on_click=clear_input, args=(hole,))
 
-            st.session_state.actuals[hole] = user_input
+            st.session_state.actuals[hole] = 0
 
         if st.button("✅ Finish Session"):
             if all(isinstance(a, int) and 0 <= a <= 200 for a in st.session_state.actuals):
