@@ -90,7 +90,7 @@ def main():
                 )
             with col2:
                 if st.button("Clear", key=f"clear_button_{hole}"):
-                    user_input = 0
+                    st.session_state[f"hole_input_{hole}"] = 0
 
             st.session_state.actuals[hole] = user_input
 
