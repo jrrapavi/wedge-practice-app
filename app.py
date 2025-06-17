@@ -70,6 +70,9 @@ def main():
     if "complete" not in st.session_state:
         st.session_state.complete = False
 
+    if "targets" not in st.session_state:
+    return  # Don't proceed until session is fully initialized
+
     num_holes = st.session_state.num_holes
 
     if not st.session_state.complete:
