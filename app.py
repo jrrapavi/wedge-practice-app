@@ -79,7 +79,7 @@ def main():
             st.markdown(f"<p style='font-size:20px;'>Hole {hole+1} - Target: <b>{target}</b> yards. Your shot (yards):</p>", unsafe_allow_html=True)
 
             user_input = st.number_input(
-                f"Hole {hole+1} - Target: {target} yards. Your shot (yards):",
+                #f"Hole {hole+1} - Target: {target} yards. Your shot (yards):",
                 min_value=0,
                 max_value=200,
                 value=default_val,
