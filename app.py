@@ -73,19 +73,24 @@ def main():
 
         for hole in range(NUM_HOLES):
             target = st.session_state.targets[hole]
-            default_val = st.session_state.actuals[hole] if st.session_state.actuals[hole] is not None else 0
+            default_val = target if st.session_state.actuals[hole] is None else st.session_state.actuals[hole]
 
             # Increase font size and bold target yardage
             st.markdown(f"<p style='font-size:20px;'>Hole {hole+1} - Target: <b>{target}</b> yards. Your shot (yards):</p>", unsafe_allow_html=True)
 
-            user_input = st.number_input(
-                "",
-                min_value=0,
-                max_value=200,
-                value=default_val,
-                step=1,
-                key=f"hole_input_{hole}"
-            )
+            col1, col2 = st.columns([3, 1])
+            with col1:
+                user_input = st.number_input(
+                    "",  # Placeholder text to avoid repeating the message
+                    min_value=0,
+                    max_value=200,
+                    value=default_val,
+                    step=1,
+                    key=f"hole_input_{hole}"
+                )
+            with col2:
+                if st.button("Clear", key=f"clear_button_{hole}"):
+                    user_input = 0
 
             st.session_state.actuals[hole] = user_input
 
