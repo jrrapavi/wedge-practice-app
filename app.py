@@ -15,9 +15,9 @@ starting_yardages = list(range(40, 155, 5))
 starting_values = [2.6, 2.62, 2.65, 2.67, 2.69, 2.7, 2.72, 2.73, 2.73, 2.75, 2.76,
                    2.77, 2.78, 2.79, 2.81, 2.82, 2.83, 2.85, 2.86, 2.87, 2.89, 2.91, 2.93]
 
-ending_yardages = list(range(0, 16))
+ending_yardages = list(range(0, 21))
 ending_values = [1, 1.04, 1.34, 1.56, 1.7, 1.78, 1.84, 1.89, 1.92, 1.95, 1.98, 2.0,
-                 2.02, 2.05, 2.08, 2.1]
+                 2.02, 2.05, 2.08, 2.47, 2.5, 2.52, 2.54, 2.55, 2.57]
 
 def get_starting_shot_value(yardage):
     return float(np.interp(yardage, starting_yardages, starting_values))
